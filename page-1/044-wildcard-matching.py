@@ -1,3 +1,6 @@
+# TLE submissions due to substring function in 010.
+# Remove it in this problem.
+
 class Solution:
     def isMatch(self, s, p):
         newP = ''
