@@ -1,31 +1,43 @@
-# Only faster than 5% T.T
-
 class Solution:
     def isMatch(self, s, p):
-        if len(s) == 0 and len(p) == 0:
-            return True
-        if len(s) > 0 and len(p) == 0:
-            return False
+        memo = {}
 
-        if len(p) >= 2 and p[1] == '*':
-            for i in range(len(s) + 1):
-                if len(set(s[:i])) > 1 and p[0] != '.':
-                    continue
-                if len(set(s[:i])) == 1 and p[0] != '.' and p[0] != s[0]:
-                    continue
-                if self.isMatch(s[i:], p[2:]):
-                    return True
-            return False
+        # Check if s[i:] is match with p[j:]
+        def dp(i, j):
+            if (i, j) in memo:
+                return memo[(i, j)]
 
-        if len(s) == 0:
-            return False
+            subS = s[i:]
+            subP = p[j:]
+            if len(subP) > 1 and subP[1] == '*':
+                if subP[0] == '.':
+                    isMatch = False
+                    for _ in range(i, len(s) + 1):
+                        if dp(_, j + 2):
+                            isMatch = True
+                            break
+                    memo[(i, j)] = isMatch
+                else:
+                    isMatch = dp(i, j + 2)
+                    char = subP[0]
+                    for _ in range(i, len(s)):
+                        if s[_] == char and dp(_ + 1, j + 2):
+                            isMatch = True
+                            break
+                        elif s[_] != char:
+                            break
+                    memo[(i, j)] = isMatch
+            elif len(subP) == 0:
+                memo[(i, j)] = True if len(subS) == 0 else False
+            elif len(subS) == 0:
+                memo[(i, j)] = False
+            elif subP[0] == '.' or subS[0] == subP[0]:
+                memo[(i, j)] = dp(i + 1, j + 1)
+            else:
+                memo[(i, j)] = False
 
-        if p[0] == '.' or s[0] == p[0]:
-            return self.isMatch(s[1:], p[1:])
+            return memo[(i, j)]
 
-        return False
+        dp(0, 0)
 
-
-s = "ab"
-p = ".*c"
-assert Solution().isMatch(s, p) is False
+        return memo[(0, 0)]
