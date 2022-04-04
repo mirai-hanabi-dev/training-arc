@@ -2,52 +2,71 @@ package main
 
 import (
 	"fmt"
+	"math"
 )
 
-var cache = make(map[string]bool)
-
 func findLadders(beginWord string, endWord string, wordList []string) [][]string {
-	visited := make(map[string]bool)
-	visited[beginWord] = true
-
-	return [][]string{}
-}
-
-func ableTransform(first string, second string) bool {
-	if first > second {
-		return ableTransform(second, first)
-	}
-	concat := first + "-" + second
-	if v, ok := cache[concat]; ok {
-		return v
+	wordList = append(wordList, beginWord)
+	wordSet := make(map[string]int)
+	for idx, word := range wordList {
+		wordSet[word] = idx
 	}
 
-	cache[concat] = true
+	queue := make([]int, 0)
 
-	if len(first) != len(second) {
-		cache[concat] = false
-		return false
+	prev := make([][]int, len(wordList))
+	for idx := range wordList {
+		prev[idx] = make([]int, 0)
 	}
 
-	diffFlag := false
-	for i := 0; i < len(first); i++ {
-		if first[i] != second[i] {
-			if diffFlag {
-				cache[concat] = false
-				return false
+	distance := make([]int, len(wordList))
+	for i := 0; i < len(distance); i++ {
+		distance[i] = math.MaxInt32
+	}
+
+	queue = append(queue, len(wordList)-1)
+	distance[len(wordList)-1] = 0
+
+	for len(queue) > 0 {
+		nextQueue := make([]int, 0)
+		for _, pos := range queue {
+			curWord := wordList[pos]
+			if curWord == endWord {
+				break
 			}
-			diffFlag = true
+
+			for k := 0; k < len(curWord); k++ {
+				for c := 'a'; c <= 'z'; c++ {
+					nextWord := curWord[:k] + string(c) + curWord[k+1:]
+
+					idx, exist := wordSet[nextWord]
+					if !exist {
+						continue
+					}
+
+					if distance[pos]+1 < distance[idx] {
+						distance[idx] = distance[pos] + 1
+						prev[idx] = []int{pos}
+						nextQueue = append(nextQueue, idx)
+					} else if distance[pos]+1 == distance[idx] {
+						prev[idx] = append(prev[idx], pos)
+					}
+				}
+			}
 		}
+
+		queue = nextQueue
 	}
 
-	return cache[concat]
+	answer := [][]string{{endWord}}
+
+	return answer
 }
 
 func main() {
 	beginWord := "hit"
-	endWord := "hot"
+	endWord := "cog"
 	wordList := []string{"hot", "dot", "dog", "lot", "log", "cog"}
 
 	fmt.Println(findLadders(beginWord, endWord, wordList))
-	fmt.Println(ableTransform(beginWord, endWord))
 }
