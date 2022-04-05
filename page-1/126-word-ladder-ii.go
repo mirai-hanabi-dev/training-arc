@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -10,6 +9,11 @@ func findLadders(beginWord string, endWord string, wordList []string) [][]string
 	wordSet := make(map[string]int)
 	for idx, word := range wordList {
 		wordSet[word] = idx
+	}
+
+	endWordIdx, exist := wordSet[endWord]
+	if !exist {
+		return [][]string{}
 	}
 
 	queue := make([]int, 0)
@@ -58,15 +62,34 @@ func findLadders(beginWord string, endWord string, wordList []string) [][]string
 		queue = nextQueue
 	}
 
-	answer := [][]string{{endWord}}
+	answer := [][]string{}
+
+	if distance[endWordIdx] == math.MaxInt32 {
+		return answer
+	}
+
+	traceResult([]string{endWord}, beginWord, wordList, wordSet, prev, &answer)
 
 	return answer
 }
 
-func main() {
-	beginWord := "hit"
-	endWord := "cog"
-	wordList := []string{"hot", "dot", "dog", "lot", "log", "cog"}
+func traceResult(curWords []string, beginWord string, wordList []string, wordSet map[string]int, prev [][]int, answer *[][]string) {
+	lastWord := curWords[len(curWords)-1]
+	if lastWord == beginWord {
+		*answer = append(*answer, reverse(curWords))
+		return
+	}
+	idx := wordSet[lastWord]
+	prevIndexes := prev[idx]
 
-	fmt.Println(findLadders(beginWord, endWord, wordList))
+	for _, idx := range prevIndexes {
+		traceResult(append(curWords, wordList[idx]), beginWord, wordList, wordSet, prev, answer)
+	}
+}
+
+func reverse(s []string) []string {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
 }
