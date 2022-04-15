@@ -1,90 +1,80 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
-type Hero struct {
-	initHP    int
-	currentHP int
-	x, y      int
+type Position struct {
+	x, y, currentHP int
 }
 
-func calculateMinimumHP(dungeon [][]int) int {
-	queue := make([]Hero, 0)
+func possibleHP(dungeon [][]int, initHP int) bool {
 	m := len(dungeon)
 	n := len(dungeon[0])
 
-	bestHP := make([][]Hero, m)
-	for i := 0; i < m; i++ {
-		bestHP[i] = make([]Hero, n)
-	}
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			bestHP[i][j].initHP = math.MaxInt32
-			bestHP[i][j].currentHP = -math.MaxInt32
-		}
-	}
+	currentHP := initHP + dungeon[0][0]
 
-	start := dungeon[0][0]
-	var initHP, currentHP int
-	if start < 0 {
-		initHP = -start + 1
-		currentHP = 1
-	} else {
-		initHP = 1
-		currentHP = start + 1
+	if currentHP <= 0 {
+		return false
 	}
-	queue = append(queue, Hero{initHP: initHP, currentHP: currentHP, x: 0, y: 0})
-	bestHP[0][0].initHP = initHP
-	bestHP[0][0].currentHP = currentHP
 
 	vx := []int{0, 1}
 	vy := []int{1, 0}
 
+	dp := make([][]Position, m)
+	for i := 0; i < m; i++ {
+		dp[i] = make([]Position, n)
+	}
+
+	start := Position{x: 0, y: 0, currentHP: currentHP}
+	queue := []Position{start}
+	dp[0][0].currentHP = currentHP
+
 	for len(queue) > 0 {
-		fmt.Println(queue)
-		nextQueue := make([]Hero, 0)
-		for _, hero := range queue {
+		nextQueue := make([]Position, 0)
+		for _, pos := range queue {
 			for k := 0; k < len(vx); k++ {
-				nextX := hero.x + vx[k]
-				nextY := hero.y + vy[k]
+				nextX := pos.x + vx[k]
+				nextY := pos.y + vy[k]
 				if nextX == m || nextY == n {
 					continue
 				}
+				nextHP := dp[pos.x][pos.y].currentHP + dungeon[nextX][nextY]
+				if nextHP <= 0 || nextHP <= dp[nextX][nextY].currentHP {
+					continue
+				}
 
-				var initHP, currentHP int
-				if dungeon[nextX][nextY] >= 0 || hero.currentHP+dungeon[nextX][nextY] > 0 {
-					initHP = hero.initHP
-					currentHP = hero.currentHP + dungeon[nextX][nextY]
-				} else {
-					initHP = hero.initHP - (hero.currentHP + dungeon[nextX][nextY]) + 1
-					currentHP = 1
-				}
-				cont1 := initHP < bestHP[nextX][nextY].initHP
-				cont2 := initHP == bestHP[nextX][nextY].initHP && currentHP > bestHP[nextX][nextY].currentHP
-				if cont1 || cont2 {
-					nextQueue = append(nextQueue, Hero{
-						initHP:    initHP,
-						currentHP: currentHP,
-						x:         nextX,
-						y:         nextY,
+				// If first time update, then push to queue.
+				// Else skip to avoid add multiple of same cell
+				// into queue.
+				if dp[nextX][nextY].currentHP == 0 {
+					nextQueue = append(nextQueue, Position{
+						x: nextX,
+						y: nextY,
 					})
-					bestHP[nextX][nextY].initHP = initHP
-					bestHP[nextX][nextY].currentHP = currentHP
 				}
+				dp[nextX][nextY].currentHP = nextHP
 			}
 		}
-
 		queue = nextQueue
 	}
-	return bestHP[m-1][n-1].initHP
+	return dp[m-1][n-1].currentHP > 0
 }
 
-func main() {
-	dungeon := [][]int{{-2, -3, 3}, {-5, -10, 1}, {10, 30, -5}}
-	dungeon = [][]int{{0}}
-	dungeon = [][]int{{0, 0, 0}, {-1, 0, 0}, {2, 0, -2}}
-	fmt.Println(calculateMinimumHP(dungeon))
+func calculateMinimumHP(dungeon [][]int) int {
+	bestHP := math.MaxInt32
+
+	lo := 1
+	hi := 200 * 200 * 1000
+	for lo <= hi {
+		mi := lo + (hi-lo)/2
+		if possibleHP(dungeon, mi) {
+			bestHP = mi
+			hi = mi - 1
+		} else {
+			lo = mi + 1
+		}
+	}
+
+	return bestHP
 }
