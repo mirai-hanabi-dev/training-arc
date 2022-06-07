@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/heap"
-	"fmt"
 	"sort"
 )
 
@@ -11,6 +10,8 @@ type pole struct {
 	id      int
 	value   int
 	height  int
+	poleEnd *pole
+	item    *line
 }
 
 type line struct {
@@ -21,25 +22,33 @@ type line struct {
 
 func getSkyline(buildings [][]int) [][]int {
 	n := len(buildings)
-	poles := make([]pole, 2*n)
+	poles := make([]*pole, 2*n)
 	for i := 0; i < len(buildings); i++ {
-		poles[i] = pole{
-			isStart: true,
-			id:      i,
-			value:   buildings[i][0],
-			height:  buildings[i][2],
-		}
-
-		poles[i+n] = pole{
+		poleEnd := &pole{
 			isStart: false,
 			id:      i,
 			value:   buildings[i][1],
 			height:  buildings[i][2],
 		}
+		poles[i+n] = poleEnd
+
+		poles[i] = &pole{
+			isStart: true,
+			id:      i,
+			value:   buildings[i][0],
+			height:  buildings[i][2],
+			poleEnd: poleEnd,
+		}
 	}
 
 	sort.Slice(poles, func(i, j int) bool {
 		if poles[i].value == poles[j].value {
+			if poles[i].isStart && poles[j].isStart {
+				return poles[i].height > poles[j].height
+			}
+			if !poles[i].isStart && !poles[j].isStart {
+				return poles[i].height < poles[j].height
+			}
 			return poles[i].isStart
 		}
 		return poles[i].value < poles[j].value
@@ -53,10 +62,20 @@ func getSkyline(buildings [][]int) [][]int {
 	heap.Push(&pq, &line{id: -1, height: 0})
 
 	for _, pole := range poles {
+		top := pq[0]
 		if pole.isStart {
-
+			if top.height < pole.height {
+				skylines = append(skylines, []int{pole.value, pole.height})
+			}
+			line := &line{id: pole.id, height: pole.height}
+			pole.poleEnd.item = line
+			heap.Push(&pq, line)
 		} else {
-
+			heap.Remove(&pq, pole.item.index)
+			top := pq[0]
+			if top.height < pole.height {
+				skylines = append(skylines, []int{pole.value, top.height})
+			}
 		}
 	}
 
@@ -77,14 +96,14 @@ func (pq priorityqueue) Swap(i, j int) {
 	pq[j].index = j
 }
 
-func (pq *priorityqueue) Push(x any) {
+func (pq *priorityqueue) Push(x interface{}) {
 	n := len(*pq)
 	item := x.(*line)
 	item.index = n
 	*pq = append(*pq, item)
 }
 
-func (pq *priorityqueue) Pop() any {
+func (pq *priorityqueue) Pop() interface{} {
 	old := *pq
 	n := len(old)
 	item := old[n-1]
@@ -92,16 +111,4 @@ func (pq *priorityqueue) Pop() any {
 	item.index = -1 // for safety
 	*pq = old[0 : n-1]
 	return item
-}
-
-func main() {
-	buildings := [][]int{
-		{2, 9, 10},
-		{3, 7, 15},
-		{5, 12, 12},
-		{15, 20, 10},
-		{19, 24, 8},
-	}
-
-	fmt.Println(getSkyline(buildings))
 }
