@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/heap"
-	"fmt"
 )
 
 // Keep track of (n+1)/2 smallest elements and largest elements.
@@ -23,27 +22,33 @@ func Constructor() MedianFinder {
 
 func (this *MedianFinder) AddNum(num int) {
 	this.size += 1
-	heapSize := (this.size + 1) / 2
-	if len(this.smaller) < heapSize {
+	if this.size == 1 {
 		heap.Push(&this.smaller, num)
+		heap.Push(&this.larger, num)
+		return
+	}
+	heapExpectedSize := (this.size + 1) / 2
+	if len(this.smaller) < heapExpectedSize { // This condition applies for both heaps
+		if num < this.smaller[0] {
+			heap.Push(&this.larger, this.smaller[0])
+			heap.Push(&this.smaller, num)
+		} else if num > this.larger[0] {
+			heap.Push(&this.larger, num)
+			heap.Push(&this.smaller, this.larger[0])
+		} else {
+			heap.Push(&this.smaller, num)
+			heap.Push(&this.larger, num)
+		}
 	} else {
 		if num < this.smaller[0] {
 			heap.Pop(&this.smaller)
 			heap.Push(&this.smaller, num)
 		}
-	}
-
-	if len(this.larger) < heapSize {
-		heap.Push(&this.larger, num)
-	} else {
 		if num > this.larger[0] {
 			heap.Pop(&this.larger)
 			heap.Push(&this.larger, num)
 		}
 	}
-	fmt.Printf("Add %d into heap\n", num)
-	fmt.Println(this.smaller)
-	fmt.Println(this.larger)
 }
 
 func (this *MedianFinder) FindMedian() float64 {
@@ -76,13 +81,4 @@ func (h *maxHeap) Pop() interface{} {
 	x := old[n-1]
 	*h = old[0 : n-1]
 	return x
-}
-
-func main() {
-	obj := Constructor()
-	obj.AddNum(1)
-	obj.AddNum(2)
-	fmt.Println(obj.FindMedian())
-	obj.AddNum(3)
-	fmt.Println(obj.FindMedian())
 }
